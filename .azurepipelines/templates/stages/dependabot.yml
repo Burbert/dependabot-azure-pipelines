@@ -1,0 +1,60 @@
+parameters:
+- name: vm_image
+- name: branch
+- name: PAT
+- name: organisation_name
+- name: project_name
+- name: repository_name
+- name: package_manager
+- name: github_pat
+
+stages:
+  - stage: dependabot
+    pool: 
+      vmImage: ${{ parameters.vm_image }}
+    jobs:
+      - job: dependabot
+        displayName: run dependabot
+        steps:
+          - checkout: self
+
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                git clone https://github.com/dependabot/dependabot-script.git
+              pwsh: true
+            displayName: clone dependabot repo
+
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                Set-Location -Path .\dependabot-script
+                docker build -t "dependabot/dependabot-script" -f Dockerfile .
+              pwsh: true
+            displayName: build docker container
+
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                docker run `
+                --env "DIRECTORY_PATH=/" `
+                --env "PACKAGE_MANAGER=$($env:package_manager)" `
+                --env "PROJECT_PATH=$($env:organisation_name)/$($env:project_name)/_git/$($env:repository_name)" `
+                --env "BRANCH=$($env:branch)" `
+                --env "AZURE_ACCESS_TOKEN=$($env:pat)" `
+                --env "AZURE_HOSTNAME=dev.azure.com" `
+                --env "GITHUB_ACCESS_TOKEN=$($env:github_pat)" `
+                "dependabot/dependabot-script"
+              pwsh: true
+            displayName: run dependabot
+            env:
+              branch: ${{ parameters.branch }}
+              pat: ${{ parameters.PAT }}
+              organisation_name: ${{ parameters.organisation_name }}
+              project_name: ${{ parameters.project_name }}
+              repository_name: ${{ parameters.repository_name }}
+              package_manager: ${{ parameters.package_manager }}
+              github_pat: ${{ parameters.github_pat }}
