@@ -1,0 +1,27 @@
+trigger: none
+
+# schedules:
+# - cron: "0 0 * * *"
+#   displayName: Daily Dependabot run
+
+parameters:
+- name: vm_image
+  default: 'ubuntu-20.04'
+  values:
+    - 'ubuntu-20.04'
+  displayName: Worker VM Image
+
+# dependabot config
+# https://github.com/dependabot/dependabot-script
+
+stages:
+- template: ./templates/stages/dependabot.yaml
+  parameters:
+    vm_image: ${{ parameters.vm_image }}
+    branch: $(Build.SourceBranchName)
+    PAT: $(pat)
+    organisation_name: btelligent
+    project_name: $(System.TeamProject)
+    repository_name: $(Build.Repository.Name)
+    package_manager: gradle
+    github_pat: $(github_pat)
